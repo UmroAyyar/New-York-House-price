@@ -1,0 +1,397 @@
+---
+title: "Stats-Final"
+author: "Syed Muhammad Hasan Zaidi"
+date: "2023-12-02"
+output: html_document
+---
+#I performed initial data cleaning using excel
+```{r}
+install.packages("data.table")
+library(data.table)
+
+data_2016 <- fread("C:\\Users\\hasan\\Downloads\\2016_brooklyn.csv")
+data_2017 <- fread("C:\\Users\\hasan\\Downloads\\2017_brooklyn.csv")
+data_2018 <- fread("C:\\Users\\hasan\\Downloads\\2018_brooklyn.csv")
+data_2019 <- fread("C:\\Users\\hasan\\Downloads\\2019_brooklyn.csv")
+data_2020 <- fread("C:\\Users\\hasan\\Downloads\\2020_brooklyn.csv")
+```
+
+```{r}
+names(data_2016) <- c('borough','neighborhood','bldclasscat','taxclasscurr','block','lot','easement','bldclasscurr','address','aptnum','zip','resunits','comunits','totunits','landsqft','grosssqft','yrbuilt','taxclasssale','bldclasssale','price','date')
+
+names(data_2017) <- c('borough','neighborhood','bldclasscat','taxclasscurr','block','lot','easement','bldclasscurr','address','aptnum','zip','resunits','comunits','totunits','landsqft','grosssqft','yrbuilt','taxclasssale','bldclasssale','price','date')
+
+names(data_2018) <- c('borough','neighborhood','bldclasscat','taxclasscurr','block','lot','easement','bldclasscurr','address','aptnum','zip','resunits','comunits','totunits','landsqft','grosssqft','yrbuilt','taxclasssale','bldclasssale','price','date')
+
+names(data_2019) <- c('borough','neighborhood','bldclasscat','taxclasscurr','block','lot','easement','bldclasscurr','address','aptnum','zip','resunits','comunits','totunits','landsqft','grosssqft','yrbuilt','taxclasssale','bldclasssale','price','date')
+
+names(data_2020) <- c('borough','neighborhood','bldclasscat','taxclasscurr','block','lot','easement','bldclasscurr','address','aptnum','zip','resunits','comunits','totunits','landsqft','grosssqft','yrbuilt','taxclasssale','bldclasssale','price','date')
+
+
+```
+
+```{r}
+combined_data <- rbind(data_2016, data_2017, data_2018, data_2019, data_2020)
+total_rows <- nrow(combined_data)
+print(total_rows)
+
+na_count <- sum(is.na(combined_data$price))
+na_count
+```
+#confirming data types
+```{r}
+column_types <- sapply(cleaned_data2, class)
+result_table <- data.frame(Column_Names = names(column_types), Data_Types = column_types)
+print(result_table)
+```
+#triming down the data set of any whitespaces 
+```{r}
+whitespace_check <- sapply(cleaned_data2, function(x) any(grepl("^\\s+|\\s+$", x)))
+print(whitespace_check)
+```
+
+```{r}
+hist(cleaned_data2$price, main = "Distribution of Price", xlab = "Price")
+summary(cleaned_data2$price)
+
+```
+```{r}
+cleaned_data2$price_bin <- cut(cleaned_data2$price, breaks = seq(0, max(cleaned_data2$price) + 10000, by = 10000), labels = FALSE)
+cleaned_data2$price_bin <- cut(cleaned_data2$price, breaks = seq(10000, max(cleaned_data2$price) + 10000, by = 10000), labels = FALSE)
+
+
+```
+
+```{r}
+cleaned_data2$price_bin <- cut(
+  cleaned_data2$price,
+  breaks = seq(0, ceiling(max(cleaned_data2$price) / 10000) * 10000, by = 10000),
+  labels = seq(10000, ceiling(max(cleaned_data2$price) / 10000) * 10000, by = 10000),
+  include.lowest = TRUE,
+  right = FALSE
+)
+summary(cleaned_data2$price_bin)
+
+```
+
+```{r}
+library(ggplot2)
+
+# Count observations per price_bin
+price_bin_counts <- table(cleaned_data2$price_bin)
+
+# View the counts
+print(price_bin_counts)
+
+# Visualize the distribution
+ggplot(cleaned_data2, aes(x = price_bin)) +
+  geom_bar() +
+  labs(x = "Price Bin", y = "Count") +
+  ggtitle("Distribution of Price Bins")
+```
+```{r}
+max_bin <- names(which.max(price_bin_counts))
+
+# Display the bin with the highest count
+print(paste("Bin with the highest count:", max_bin))
+```
+```{r}
+Q1 <- quantile(cleaned_data$price, 0.25)
+Q3 <- quantile(cleaned_data$price, 0.75)
+IQR_val <- Q3 - Q1
+upper_bound <- Q3 + 1.5 * IQR_val
+
+# Remove upper bound outliers from 'price' column
+cleaned_data3 <- cleaned_data2[cleaned_data2$price <= upper_bound, ]
+```
+
+
+
+
+```{r}
+numeric_data <- cleaned_data3[sapply(cleaned_data3, is.numeric)]
+
+```
+
+
+
+```{r}
+encoded_price_bin <- model.matrix(~ price_bin - 1, data = cleaned_data3)
+
+```
+
+```{r}
+pca_result <- prcomp(cleaned_data3, center = TRUE, scale. = TRUE)
+
+# Access the principal components
+pcs <- pca_result$x
+
+# Summary of PCA
+summary(pca_result)
+```
+```{r}
+na_counts <- colSums(is.na(cleaned_data2))
+
+# Create a table displaying the count of NA values per column
+na_table <- data.frame(Column_Names = names(na_counts), NA_Count = na_counts)
+```
+```{r}
+na_table
+```
+```{r}
+cleaned_data2$brook_neigh <- ifelse(is.na(cleaned_data2$brook_neigh), 'other', cleaned_data2$brook_neigh)
+
+```
+
+```{r}
+cleaned_data2$price_bin <- as.numeric(cleaned_data2$price_bin)
+
+```
+
+```{r}
+cleaned_data2$block_bin <- substr(cleaned_data2$block, 1, 2)
+
+```
+
+```{r}
+cleaned_data2$zip_bin <- substr(cleaned_data2$zip, nchar(cleaned_data2$zip) - 1, nchar(cleaned_data2$zip))
+
+```
+
+```{r}
+summary(cleaned_data2$lot)
+min(cleaned_data2$lot, na.rm = TRUE)  
+max(cleaned_data2$lot, na.rm = TRUE)  
+mean(cleaned_data2$lot, na.rm = TRUE)
+class(cleaned_data2$lot)
+cleaned_data2$lot <- as.numeric(cleaned_data2$lot)
+```
+```{r}
+cleaned_data2$lot_bin <- ceiling(cleaned_data2$lot / 10) * 10
+class(cleaned_data2$lot_bin)
+
+```
+```{r}
+min(cleaned_data2$grosssqft, na.rm = TRUE)  
+max(cleaned_data2$grosssqft, na.rm = TRUE)  
+mean(cleaned_data2$grosssqft, na.rm = TRUE)
+class(cleaned_data2$grosssqft)
+```
+```{r}
+cleaned_data2$gross_bin <- ceiling(cleaned_data2$grosssqft / 100) * 100
+
+```
+
+
+#sorting all dates to be in the same format
+```{r}
+library(lubridate)
+combined_data$date <- parse_date_time(
+  combined_data$date,
+  orders = c("mdy", "dmy", "ymd"),
+  quiet = TRUE
+)
+
+combined_data$date <- format(combined_data$date, "%m/%d/%y")
+
+```
+
+#adding columns. 1. Date
+```{r}
+combined_data$date <- mdy(combined_data$date)
+
+combined_data$year <- year(combined_data$date)
+
+get_quarter <- function(month) {
+  ifelse(month %in% 1:3, "Qtr1",
+         ifelse(month %in% 4:6, "Qtr2",
+                ifelse(month %in% 7:9, "Qtr3", "Qtr4")))
+}
+
+combined_data$quarter <- get_quarter(month(combined_data$date))
+
+```
+
+#removing commas 
+```{r}
+library(dplyr)
+library(stringr)
+
+cleaned_data <- combined_data %>%
+  mutate_all(~str_replace_all(., ",", ""))
+
+```
+
+#Changing Data Types```
+```{r}
+na_count <- sum(is.na(cleaned_data$price))
+na_count
+```
+```{r}
+cleaned_data$price <- gsub("\\$", "", cleaned_data$price)
+
+```
+
+```{r}
+na_count <- sum(is.na(cleaned_data$price))
+na_count
+```
+
+```{r}
+cleaned_data$price <- as.integer(cleaned_data$price)
+cleaned_data$grosssqft <- as.numeric(cleaned_data$grosssqft)
+cleaned_data$landsqft <- as.numeric(cleaned_data$landsqft)
+
+```
+
+```{r}
+cleaned_data2 <- cleaned_data
+```
+
+```{r}
+cleaned_data2 <- cleaned_data2[!is.na(cleaned_data2$grosssqft), ]
+```
+
+
+```{r}
+neighborhood_counts <- table(cleaned_data2$neighborhood)
+print(neighborhood_counts)
+
+```
+```{r}
+year_counts <- table(cleaned_data2$year)
+print(year_counts)
+
+```
+```{r}
+zip_counts <- table(cleaned_data2$zip)
+print(zip_counts)
+
+```
+
+```{r}
+cleaned_data2$sqrt_price <- sqrt(cleaned_data2$price)
+cleaned_data2$sqrt_grosssqft <- sqrt(cleaned_data2$grosssqft)
+cleaned_data2$sqrt_landsqft <- sqrt(cleaned_data2$landsqft)
+```
+
+```{r}
+cleaned_data2$log_price <- log(cleaned_data2$price)
+cleaned_data2$log_grosssqft <- log(cleaned_data2$grosssqft)
+cleaned_data2$log_landsqft <- log(cleaned_data2$landsqft)
+```
+
+```{r}
+library(dplyr)
+
+# Your matched neighborhood data
+matches <- tibble::tribble(
+  ~List2Neighborhood, ~List1Heading,
+  "BATH BEACH", "Southern Brooklyn",
+  "BAY RIDGE", "Southwestern Brooklyn",
+  "BEDFORD STUYVESANT", "Northern Brooklyn",
+  # Add other matched neighborhoods here...
+)
+
+# Creating the new column 'brook_neigh'
+cleaned_data2 <- cleaned_data2 %>%
+  left_join(matches, by = c("neighborhood" = "List2Neighborhood")) %>%
+  mutate(brook_neigh = case_when(
+    !is.na(List1Heading) ~ List1Heading,
+    TRUE ~ NA_character_  # If no match is found
+  ))
+```
+
+```{r}
+hist(cleaned_data2$price, main = "Distribution of Price", xlab = "Price")
+
+```
+
+```{r}
+min(cleaned_data2$gross_bin, na.rm = TRUE)  
+max(cleaned_data2$gross_bin, na.rm = TRUE)  
+mean(cleaned_data2$gross_bin, na.rm = TRUE)
+```
+```{r}
+mean_gross <- mean(cleaned_data2$gross_bin)
+sd_gross <- sd(cleaned_data2$gross_bin)
+upper_bound <- mean_gross + 3 * sd_gross
+lower_bound <- mean_gross - 3 * sd_gross
+outliers <- cleaned_data2$gross_bin[cleaned_data2$gross_bin > upper_bound | cleaned_data2$gross_bin < lower_bound]
+num_outliers <- length(outliers)
+cat("Number of outliers:", num_outliers, "\n")
+
+```
+```{r}
+
+cleaned_data2 <- subset(cleaned_data2, !(gross_bin > upper_bound | gross_bin < lower_bound))
+```
+
+```{r}
+class(cleaned_data2$zip_bin)
+
+```
+#Final Data
+```{r}
+num_rows <- nrow(cleaned_data2)
+print(num_rows)
+```
+
+#Model
+```{r}
+lm_model_price_bin <- lm(price ~ factor(brook_neigh)   + factor(zip_bin) + gross_bin , data = cleaned_data2)
+```
+
+
+```{r}
+summary(lm_model_price_bin)
+
+# RMSE calculation
+predicted <- predict(lm_model_price_bin)
+actual <- cleaned_data2$price
+rmse <- sqrt(mean((actual - predicted)^2))
+print(rmse)
+```
+# R^2 = 0.5585
+# DF 41
+#RSME 463979.9
+
+```{r}
+saveRDS(list(model=lm_model_price_bin, data=cleaned_data2), file='HasanFinal.RDS') 
+```
+
+```{r}
+saveRDS(lm_model_price_bin, file = "Hasan_Final.rds")
+
+```
+
+```{r}
+getwd()
+```
+```{r}
+list.files()
+
+list.files(pattern = "lm_model_price_bin")
+
+```
+
+```{r}
+setwd("~/Desktop")
+
+```
+
+```{r}
+list.files(pattern = "lm_model_price_bin")
+
+```
+
+```{r}
+print(getwd())
+
+```
+```{r}
+
+```
+
+
+
